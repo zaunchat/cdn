@@ -28,10 +28,9 @@ pub async fn download(
         .bind(&tag)
         .bind(filename)
         .fetch_one(&pool)
-        .await
-        .map_err(|_| Error::Database)?;
+        .await?;
 
-    let buffer = s3::get(&tag, id).await.map_err(|_| Error::S3Unavailable)?;
+    let buffer = s3::get(&tag, id).await?;
 
     Ok((
         [

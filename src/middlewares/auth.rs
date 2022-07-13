@@ -21,8 +21,7 @@ pub async fn handle<B>(req: Request<B>, next: Next<B>) -> Result<Response, Error
     let exists = sqlx::query("SELECT COUNT(*) FROM sessions WHERE token = $1")
         .bind(token.unwrap())
         .execute(pool)
-        .await
-        .map_err(|_| Error::Database)?;
+        .await?;
 
     if exists.rows_affected() == 0 {
         return Err(Error::InvalidToken);

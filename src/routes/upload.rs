@@ -74,6 +74,8 @@ pub async fn upload(
 
     let content_type = tree_magic::from_u8(&buffer);
 
+    let mut tx = pool.begin().await?;
+
     let file = Attachment {
         name,
         id: snowflake::generate(),
@@ -82,13 +84,12 @@ pub async fn upload(
         meta: Json(metadata),
         size: size as i32,
     }
-    .insert(&pool)
-    .await
-    .map_err(|_| Error::Database)?;
+    .insert(&mut tx)
+    .await?;
 
-    s3::save(&tag, file.id, &buffer)
-        .await
-        .map_err(|_| Error::S3Unavailable)?;
+    s3::save(&tag, file.id, &buffer).await?;
 
-    Ok(JsonRes(file))
+    tx.commit().await?;
+
+    Ok(file.into())
 }
