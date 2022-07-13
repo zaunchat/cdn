@@ -8,8 +8,8 @@ use serde::Serialize;
 quick_error! {
     #[derive(Debug, Serialize)]
     pub enum Error {
-         TooLarge { display("This file is too lar") }
-         TypeNotAllowed
+         TooLarge { display("This file is too large") }
+         TypeNotAllowed { display("This file format isn't allowed for this tag") }
          UnknownTag
          NotFound
          MissingHeader
@@ -47,6 +47,12 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let status = match self {
             Error::NotFound => StatusCode::NOT_FOUND,
+            Error::InvalidToken => StatusCode::UNAUTHORIZED,
+            Error::MissingHeader => StatusCode::UNAUTHORIZED,
+            Error::S3Unavailable => StatusCode::SERVICE_UNAVAILABLE,
+            Error::Database => StatusCode::SERVICE_UNAVAILABLE,
+            Error::TooLarge => StatusCode::PAYLOAD_TOO_LARGE,
+            Error::UnknownTag => StatusCode::FORBIDDEN,
             _ => StatusCode::BAD_REQUEST,
         };
 

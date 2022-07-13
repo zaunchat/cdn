@@ -1,6 +1,6 @@
 use crate::{
     structures::*,
-    utils::{result::*, s3},
+    utils::{result::*, s3, Tag},
 };
 use axum::{
     extract::{Extension, Path},
@@ -13,19 +13,12 @@ pub async fn download(
     Path((tag, id, filename)): Path<(String, i64, String)>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<impl IntoResponse> {
-    let is_valid_tag = matches!(
-        tag.as_str(),
-        "avatars" | "icons" | "backgrounds" | "attachments"
-    );
-
-    if !is_valid_tag {
-        return Err(Error::UnknownTag);
-    }
+    let tag = Tag::try_from(tag)?;
 
     let info = Attachment::select()
         .filter("id = $1 AND tag = $2 AND name = $3")
         .bind(id)
-        .bind(&tag)
+        .bind(tag)
         .bind(filename)
         .fetch_one(&pool)
         .await?;
