@@ -1,4 +1,4 @@
-use crate::config::*;
+use crate::{config::*, utils::Tag};
 use s3::{creds::Credentials, error::S3Error, Bucket, Region};
 
 lazy_static! {
@@ -14,16 +14,16 @@ lazy_static! {
     };
 }
 
-pub fn bucket(tag: &str) -> Bucket {
-    Bucket::new(tag, REGION.clone(), CREDENTIALS.clone()).unwrap()
+pub fn bucket(tag: &Tag) -> Bucket {
+    Bucket::new(&tag.to_string(), REGION.clone(), CREDENTIALS.clone()).unwrap()
 }
 
-pub async fn save(tag: &str, id: i64, content: &[u8]) -> Result<(), S3Error> {
+pub async fn save(tag: &Tag, id: i64, content: &[u8]) -> Result<(), S3Error> {
     bucket(tag).put_object(id.to_string(), content).await?;
     Ok(())
 }
 
-pub async fn get(tag: &str, id: i64) -> Result<Vec<u8>, S3Error> {
+pub async fn get(tag: &Tag, id: i64) -> Result<Vec<u8>, S3Error> {
     let (data, _) = bucket(tag).get_object(id.to_string()).await?;
     Ok(data)
 }

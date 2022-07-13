@@ -1,6 +1,6 @@
 use crate::{
     structures::*,
-    utils::{result::*, s3, snowflake},
+    utils::{s3, snowflake, Error, Result, Tag},
 };
 use axum::extract::{ContentLengthLimit, Extension, Json as JsonRes, Multipart, Path};
 use content_inspector::inspect;
@@ -17,16 +17,11 @@ pub async fn upload(
     >,
     Extension(pool): Extension<PgPool>,
 ) -> Result<JsonRes<Attachment>> {
-    let limit: usize = match tag.as_str() {
-        "avatars" => 8_000_000,       // 8MB
-        "icons" => 8_000_000,         // 8MB
-        "backgrounds" => 16_000_000,  // 16MB
-        "attachments" => 100_000_000, // 100MB
-        _ => return Err(Error::UnknownTag),
-    };
-
+    let tag = Tag::try_from(tag)?;
+    let limit = tag.limit();
     let mut size: usize = 0;
     let mut buffer: Vec<u8> = Vec::new();
+
     let name = if let Ok(Some(mut field)) = multipart.next_field().await {
         let filename = field.file_name().ok_or(Error::Unknown)?.to_string();
 
@@ -45,8 +40,10 @@ pub async fn upload(
         return Err(Error::Unknown);
     };
 
+    let content_type = tree_magic::from_u8(&buffer);
+
     // TODO:
-    let metadata = match tree_magic::from_u8(&buffer).as_str() {
+    let metadata = match content_type.as_str() {
         "image/jpeg" | "image/png" | "image/gif" | "image/webp" => Metadata::Image {},
         "video/mp4" | "video/webm" => Metadata::Video {},
         "audio/mpeg" => Metadata::Audio {},
@@ -59,30 +56,23 @@ pub async fn upload(
         }
     };
 
-    let limited = match &metadata {
-        Metadata::Text { .. } if size > 4_000_000 => 4_000_000,
-        Metadata::Audio { .. } if size > 8_000_000 => 8_000_000,
-        Metadata::Image { .. } if size > 16_000_000 => 16_000_000,
-        Metadata::Video { .. } if size > 32_000_000 => 32_000_000,
-        _ if size > 100_000_000 => 100_000_000,
-        _ => 0,
-    };
-
-    if limited > 0 {
+    if !metadata.accept(size) {
         return Err(Error::TooLarge);
     }
 
-    let content_type = tree_magic::from_u8(&buffer);
+    if !tag.accept(&metadata) {
+        return Err(Error::TypeNotAllowed);
+    }
 
     let mut tx = pool.begin().await?;
 
     let file = Attachment {
-        name,
         id: snowflake::generate(),
-        tag: tag.clone(),
+        name,
         content_type,
         meta: Json(metadata),
         size: size as i32,
+        tag,
     }
     .insert(&mut tx)
     .await?;
