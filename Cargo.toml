@@ -5,7 +5,7 @@ edition = "2021"
 
 
 [dependencies]
-axum = { version = "0.5.9", features = ["multipart"] }
+axum = { version = "0.5.12", features = ["multipart"] }
 dotenv = "0.15.0"
 futures = "0.3.21"
 lazy_static = "1.4.0"
@@ -16,10 +16,14 @@ tokio = { version = "1.19.2", features = ["full"] }
 tower-http = { version = "0.3.0", features = ["cors"] }
 tree_magic = "0.2.3"
 content_inspector = "0.2.4"
-rbatis = { version = "3.1.11", default-features = false, features = [
+quick-error = "2.0.1"
+rs-snowflake = "0.6.0"
+sqlx = { version = "0.6.0", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "json",
+] }
+ormlite = { git = "https://github.com/kurtbuilds/ormlite", rev = "a84f64b3b9ebd282d09ab196eec9361b57b523c7", features = [
     "postgres",
     "runtime-tokio-rustls",
-    "upper_case_sql_keyword",
 ] }
-rbson = "2.0.3"
-quick-error = "2.0.1"

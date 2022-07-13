@@ -1,0 +1,9 @@
+
+tasks:
+  - init: cargo build
+    command: cargo watch -x run
+
+
+vscode:
+  extensions:
+    - tamasfe.even-better-toml

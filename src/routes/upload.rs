@@ -1,8 +1,11 @@
-use crate::structures::attachment::{Attachment, Metadata};
-use crate::utils::{result::*, s3, snowflake};
-use axum::extract::{ContentLengthLimit, Multipart, Path};
+use crate::{
+    structures::*,
+    utils::{result::*, s3, snowflake},
+};
+use axum::extract::{ContentLengthLimit, Extension, Multipart, Path};
 use content_inspector::inspect;
 use futures::StreamExt;
+use ormlite::{model::*, types::Json, PgPool};
 
 pub async fn upload(
     Path(tag): Path<String>,
@@ -12,6 +15,7 @@ pub async fn upload(
             100 * 1024 * 1024 // 100MB
         },
     >,
+    Extension(pool): Extension<PgPool>,
 ) -> Result<()> {
     let limit: usize = match tag.as_str() {
         "avatars" => 8_000_000,       // 8MB
@@ -68,19 +72,23 @@ pub async fn upload(
         return Err(Error::TooLarge);
     }
 
+    let content_type = tree_magic::from_u8(&buffer);
+
     let file = Attachment {
         name,
         id: snowflake::generate(),
-        uploader: 0,
         tag: tag.clone(),
-        meta: metadata,
-        size: size as u32,
-    };
+        content_type,
+        meta: Json(metadata),
+        size: size as i32,
+    }
+    .insert(&pool)
+    .await
+    .map_err(|_| Error::Database)?;
 
-    // db.save(&file, vec![]).await;
-    s3::save(tag, file.id, &buffer)
+    s3::save(&tag, file.id, &buffer)
         .await
-        .map_err(|_| Error::Unknown)?;
+        .map_err(|_| Error::S3Unavailable)?;
 
     Ok(())
 }

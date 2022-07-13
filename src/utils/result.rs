@@ -12,6 +12,10 @@ quick_error! {
          TypeNotAllowed
          UnknownTag
          NotFound
+         MissingHeader
+         InvalidToken
+         S3Unavailable
+         Database
          Unknown
     }
 }
