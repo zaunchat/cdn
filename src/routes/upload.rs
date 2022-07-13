@@ -2,7 +2,7 @@ use crate::{
     structures::*,
     utils::{result::*, s3, snowflake},
 };
-use axum::extract::{ContentLengthLimit, Extension, Multipart, Path};
+use axum::extract::{ContentLengthLimit, Extension, Json as JsonRes, Multipart, Path};
 use content_inspector::inspect;
 use futures::StreamExt;
 use ormlite::{model::*, types::Json, PgPool};
@@ -16,7 +16,7 @@ pub async fn upload(
         },
     >,
     Extension(pool): Extension<PgPool>,
-) -> Result<()> {
+) -> Result<JsonRes<Attachment>> {
     let limit: usize = match tag.as_str() {
         "avatars" => 8_000_000,       // 8MB
         "icons" => 8_000_000,         // 8MB
@@ -90,5 +90,5 @@ pub async fn upload(
         .await
         .map_err(|_| Error::S3Unavailable)?;
 
-    Ok(())
+    Ok(JsonRes(file))
 }
