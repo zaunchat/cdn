@@ -1,5 +1,4 @@
-use crate::structures::Metadata;
-use crate::utils::Error;
+use super::{ContentType, Error};
 use serde::Serialize;
 use sqlx::{
     encode::IsNull,
@@ -43,9 +42,12 @@ impl Tag {
         }
     }
 
-    pub fn accept(&self, meta: &Metadata) -> bool {
+    pub fn accept(&self, content_type: &ContentType) -> bool {
         if matches!(self, Tag::Avatars | Tag::Backgrounds | Tag::Icons) {
-            return matches!(meta, &Metadata::Image { .. });
+            if let ContentType::Image(_) = content_type {
+                return true;
+            }
+            return false;
         }
         true
     }
@@ -74,13 +76,12 @@ impl TryFrom<String> for Tag {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let tag = match value.as_str() {
+        Ok(match value.as_str() {
             "avatars" => Self::Avatars,
             "backgrounds" => Self::Backgrounds,
             "icons" => Self::Icons,
             "attachments" => Self::Attachments,
             _ => return Err(Error::UnknownTag),
-        };
-        Ok(tag)
+        })
     }
 }

@@ -1,11 +1,10 @@
 use crate::{
     structures::*,
-    utils::{s3, snowflake, Error, Result, Tag},
+    utils::{s3, snowflake, ContentType, Error, Result, Tag},
 };
-use axum::extract::{ContentLengthLimit, Extension, Json as JsonRes, Multipart, Path};
-use content_inspector::inspect;
+use axum::extract::*;
 use futures::StreamExt;
-use ormlite::{model::*, types::Json, PgPool};
+use ormlite::{model::*, PgPool};
 
 pub async fn upload(
     Path(tag): Path<String>,
@@ -16,14 +15,17 @@ pub async fn upload(
         },
     >,
     Extension(pool): Extension<PgPool>,
-) -> Result<JsonRes<Attachment>> {
+) -> Result<Json<Attachment>> {
     let tag = Tag::try_from(tag)?;
     let limit = tag.limit();
-    let mut size: usize = 0;
-    let mut buffer: Vec<u8> = Vec::new();
 
-    let name = if let Ok(Some(mut field)) = multipart.next_field().await {
-        let filename = field.file_name().ok_or(Error::Unknown)?.to_string();
+    let mut buffer: Vec<u8> = Vec::new();
+    let mut size: usize = 0;
+    let mut height: Option<i32> = None;
+    let mut width: Option<i32> = None;
+
+    let filename = if let Ok(Some(mut field)) = multipart.next_field().await {
+        let name = field.file_name().ok_or(Error::CannotProcess)?.to_string();
 
         while let Some(Ok(chunk)) = field.next().await {
             size += chunk.len();
@@ -35,32 +37,28 @@ pub async fn upload(
             buffer.append(&mut chunk.to_vec());
         }
 
-        filename
+        name
     } else {
         return Err(Error::Unknown);
     };
 
-    let content_type = tree_magic::from_u8(&buffer);
+    let content_type = tree_magic::from_u8(&buffer).into();
 
-    // TODO:
-    let metadata = match content_type.as_str() {
-        "image/jpeg" | "image/png" | "image/gif" | "image/webp" => Metadata::Image {},
-        "video/mp4" | "video/webm" => Metadata::Video {},
-        "audio/mpeg" => Metadata::Audio {},
-        _ => {
-            if inspect(&buffer).is_text() {
-                Metadata::Text {}
-            } else {
-                Metadata::File {}
-            }
-        }
-    };
+    if let ContentType::Image(_) = content_type {
+        let size = imagesize::blob_size(&buffer).map_err(|_| Error::CannotProcess)?;
+        height = Some(size.height.try_into().map_err(|_| Error::CannotProcess)?);
+        width = Some(size.width.try_into().map_err(|_| Error::CannotProcess)?);
+    }
 
-    if !metadata.accept(size) {
+    if let ContentType::Video(_) = content_type {
+        // TODO: Extract height and width
+    }
+
+    if !content_type.is_allowed_size(size) {
         return Err(Error::TooLarge);
     }
 
-    if !tag.accept(&metadata) {
+    if !tag.accept(&content_type) {
         return Err(Error::TypeNotAllowed);
     }
 
@@ -68,11 +66,12 @@ pub async fn upload(
 
     let file = Attachment {
         id: snowflake::generate(),
-        name,
+        filename,
         content_type,
-        meta: Json(metadata),
+        height,
+        width,
         size: size as i32,
-        tag,
+        deleted: false,
     }
     .insert(&mut tx)
     .await?;

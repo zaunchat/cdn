@@ -176,9 +176,9 @@ name = "cdn"
 version = "0.1.0"
 dependencies = [
  "axum",
- "content_inspector",
  "dotenv",
  "futures",
+ "imagesize",
  "lazy_static",
  "ormlite",
  "quick-error",
@@ -211,15 +211,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "content_inspector"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7bda66e858c683005a53a9a60c69a4aca7eeaa45d124526e389f7aec8e62f38"
-dependencies = [
- "memchr 2.5.0",
 ]
 
 [[package]]
@@ -775,6 +766,12 @@ dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
+
+[[package]]
+name = "imagesize"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00b3b62f4e783e38afa07b51eaaa789be2fba03dbe29a05a1a906eb64feb987d"
 
 [[package]]
 name = "indexmap"
