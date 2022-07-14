@@ -10,6 +10,7 @@ quick_error! {
     pub enum Error {
          TooLarge { display("This file is too large") }
          TypeNotAllowed { display("This file format isn't allowed for this tag") }
+         CannotProcess { display("Couldn't process this file") }
          UnknownTag
          NotFound
          MissingHeader

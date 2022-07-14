@@ -28,8 +28,7 @@ pub async fn get(tag: &Tag, id: i64) -> Result<Vec<u8>, S3Error> {
     Ok(data)
 }
 
-#[cfg(allow_dead)]
-pub async fn delete(tag: &str, id: i64) -> Result<(), S3Error> {
+pub async fn delete(tag: &Tag, id: i64) -> Result<(), S3Error> {
     bucket(tag).delete_object(id.to_string()).await?;
     Ok(())
 }

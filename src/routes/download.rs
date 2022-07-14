@@ -16,9 +16,8 @@ pub async fn download(
     let tag = Tag::try_from(tag)?;
 
     let info = Attachment::select()
-        .filter("id = $1 AND tag = $2 AND name = $3")
+        .filter("id = $1 AND filename = $2 AND deleted = FALSE")
         .bind(id)
-        .bind(tag)
         .bind(filename)
         .fetch_one(&pool)
         .await?;
@@ -29,9 +28,9 @@ pub async fn download(
         [
             (
                 CONTENT_DISPOSITION,
-                format!("attachment; filename=\"{}\"", info.name),
+                format!("attachment; filename=\"{}\"", info.filename),
             ),
-            (CONTENT_TYPE, info.content_type),
+            (CONTENT_TYPE, info.content_type.to_string()),
         ],
         buffer,
     ))

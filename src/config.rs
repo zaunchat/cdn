@@ -2,6 +2,7 @@ use std::env;
 
 lazy_static! {
     pub static ref PORT: String = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+    pub static ref ORIGIN: String = env::var("ORIGIN").unwrap_or_else(|_| "*".to_string());
     pub static ref DATABASE_URI: String =
         env::var("DATABASE_URI").expect("DATABASE_URI is required");
     pub static ref S3_KEY: String = env::var("S3_KEY").expect("S3_KEY is required");
