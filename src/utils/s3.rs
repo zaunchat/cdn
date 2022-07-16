@@ -2,12 +2,8 @@ use crate::{config::*, utils::Tag};
 use s3::{creds::Credentials, error::S3Error, Bucket, Region};
 
 lazy_static! {
-    static ref CREDENTIALS: Credentials = Credentials {
-        access_key: Some(S3_KEY.clone()),
-        secret_key: Some(S3_SECRET.clone()),
-        security_token: None,
-        session_token: None,
-    };
+    static ref CREDENTIALS: Credentials =
+        Credentials::from_env_specific(Some("S3_KEY"), Some("S3_SECRET"), None, None).unwrap();
     static ref REGION: Region = Region::Custom {
         region: S3_REGION.clone(),
         endpoint: S3_ENDPOINT.clone(),
@@ -15,7 +11,9 @@ lazy_static! {
 }
 
 pub fn bucket(tag: &Tag) -> Bucket {
-    Bucket::new(&tag.to_string(), REGION.clone(), CREDENTIALS.clone()).unwrap()
+    Bucket::new(&tag.to_string(), REGION.clone(), CREDENTIALS.clone())
+        .unwrap()
+        .with_path_style()
 }
 
 pub async fn save(tag: &Tag, id: i64, content: &[u8]) -> Result<(), S3Error> {

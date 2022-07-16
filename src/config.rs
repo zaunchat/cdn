@@ -1,12 +1,24 @@
 use std::env;
 
+macro_rules! get {
+    ($key:expr) => {{
+        env::var($key).expect(&format!("{} is required", $key))
+    }};
+    ($key:expr, $default: expr) => {{
+        env::var($key).unwrap_or($default.to_string())
+    }};
+}
+
 lazy_static! {
-    pub static ref PORT: String = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
-    pub static ref ORIGIN: String = env::var("ORIGIN").unwrap_or_else(|_| "*".to_string());
-    pub static ref DATABASE_URI: String =
-        env::var("DATABASE_URI").expect("DATABASE_URI is required");
-    pub static ref S3_KEY: String = env::var("S3_KEY").expect("S3_KEY is required");
-    pub static ref S3_SECRET: String = env::var("S3_SECRET").expect("S3_SECRET is required");
-    pub static ref S3_ENDPOINT: String = env::var("S3_ENDPOINT").expect("S3_ENDPOINT is required");
-    pub static ref S3_REGION: String = env::var("S3_REGION").unwrap_or_default();
+    pub static ref PORT: String = get!("PORT", "8080");
+    pub static ref ORIGIN: String = get!("ORIGIN", "*");
+    pub static ref DATABASE_URI: String = get!(
+        "DATABASE_URI",
+        "postgres://postgres:postgres@localhost:5432"
+    );
+    pub static ref DATABASE_POOL_SIZE: u32 = get!("DATABASE_POOL_SIZE", "10").parse().unwrap();
+    pub static ref S3_KEY: String = get!("S3_KEY", "s3-storage");
+    pub static ref S3_SECRET: String = get!("S3_SECRET", "passw0rd");
+    pub static ref S3_ENDPOINT: String = get!("S3_ENDPOINT", "http://127.0.0.1:10000");
+    pub static ref S3_REGION: String = get!("S3_REGION", "");
 }

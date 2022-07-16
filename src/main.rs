@@ -4,8 +4,7 @@ extern crate s3;
 
 use axum::{routing::*, Extension, Router, Server};
 use sqlx::postgres::PgPoolOptions;
-use std::net::SocketAddr;
-use std::time::Duration;
+use std::{env, net::SocketAddr, time::Duration};
 use tokio::{task, time};
 
 mod config;
@@ -20,8 +19,16 @@ static FIVE_HOURS_IN_SECONDS: u64 = 18000;
 async fn main() {
     dotenv::dotenv().ok();
 
+    if let Ok(v) = env::var("MINIO_ROOT_USER") {
+        env::set_var("S3_KEY", v);
+    }
+
+    if let Ok(v) = env::var("MINIO_ROOT_PASSWORD") {
+        env::set_var("S3_SECRET", v);
+    }
+
     let pool = PgPoolOptions::new()
-        .max_connections(10)
+        .max_connections(*config::DATABASE_POOL_SIZE)
         .connect(&*config::DATABASE_URI)
         .await
         .expect("Couldn't connect to database");

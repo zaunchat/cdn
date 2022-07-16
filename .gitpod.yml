@@ -1,8 +1,6 @@
-
 tasks:
-  - init: cargo build
-    command: cargo watch -x run
-
+  - init: make dev
+    command: cargo test
 
 vscode:
   extensions:
